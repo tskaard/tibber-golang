@@ -10,17 +10,17 @@ import (
 const graphQlEndpoint = "https://api.tibber.com/v1-beta/gql"
 
 type TibberClient struct {
-	Key       string
+	Token     string
 	gqlClient *graphql.Client
 }
 
-func NewTibberClient(key string) *TibberClient {
+func NewTibberClient(token string) *TibberClient {
 	c := &http.Client{
 		Timeout: time.Second * 10,
 	}
 	gql := graphql.NewClient(graphQlEndpoint, graphql.WithHTTPClient(c))
 	tc := TibberClient{
-		Key:       key,
+		Token:     token,
 		gqlClient: gql,
 	}
 	return &tc

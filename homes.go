@@ -64,7 +64,7 @@ func (t *TibberClient) GetHomes() ([]Home, error) {
 			}
 		}`)
 	req.Header.Set("Cache-Control", "no-cache")
-	req.Header.Set("Authorization", "Bearer "+t.Key)
+	req.Header.Set("Authorization", "Bearer "+t.Token)
 	ctx := context.Background()
 	var result HomesResponse
 	if err := t.gqlClient.Run(ctx, req, &result); err != nil {
@@ -89,7 +89,7 @@ func (t *TibberClient) SendPushNotification(title, msg string) (int, error) {
 	}
 	req.Var("input", input)
 	req.Header.Set("Cache-Control", "no-cache")
-	req.Header.Set("Authorization", "Bearer "+t.Key)
+	req.Header.Set("Authorization", "Bearer "+t.Token)
 	//ctx := context.Background()
 	//
 	ctx, _ := context.WithTimeout(context.Background(), time.Second*2)
