@@ -68,7 +68,7 @@ func main() {
 
 }
 
-func (fh *Handler) handleStreams(newMsg *tibber.StreamMsg) {
+func (h *Handler) handleStreams(newMsg *tibber.StreamMsg) {
 	fmt.Println(newMsg.Payload.Data.LiveMeasurement.Timestamp + " :: " + strconv.Itoa(newMsg.Payload.Data.LiveMeasurement.Power) + " Watt")
 }
 ```
