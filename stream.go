@@ -8,14 +8,43 @@ import (
 
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
-	"github.com/tskaard/tibber-golang/model"
 )
 
 const subscriptionEndpoint = "v1-beta/gql/subscriptions"
 const tibberHost = "api.tibber.com"
 
 // MsgChan for reciving messages
-type MsgChan chan *model.TibberMsg
+type MsgChan chan *StreamMsg
+
+// StreamMsg for streams
+type StreamMsg struct {
+	HomeID  string  `json:"homeId"`
+	Type    string  `json:"type"`
+	ID      int     `json:"id"`
+	Payload Payload `json:"payload"`
+}
+
+// Payload in StreamMsg
+type Payload struct {
+	Data Data `json:"data"`
+}
+
+// Data in Payload
+type Data struct {
+	LiveMeasurement LiveMeasurement `json:"liveMeasurement"`
+}
+
+// LiveMeasurement in data payload
+type LiveMeasurement struct {
+	Timestamp              string  `json:"timestamp"`
+	Power                  int     `json:"power"`
+	AccumulatedConsumption float64 `json:"accumulatedConsumption"`
+	AccumulatedCost        float64 `json:"accumulatedCost"`
+	Currency               string  `json:"currency"`
+	MinPower               int     `json:"minPower"`
+	AveragePower           float64 `json:"averagePower"`
+	MaxPower               int     `json:"maxPower"`
+}
 
 // Stream for subscribing to Tibber pulse
 type Stream struct {
@@ -63,7 +92,7 @@ func (ts *Stream) StartSubscription(outputChan MsgChan) error {
 			if !ts.initialized {
 				ts.sendInitMsg()
 			}
-			tm := model.TibberMsg{}
+			tm := StreamMsg{}
 			err := ts.client.ReadJSON(&tm)
 			if err != nil {
 				if websocket.IsCloseError(err,

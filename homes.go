@@ -5,11 +5,38 @@ import (
 
 	"github.com/machinebox/graphql"
 	log "github.com/sirupsen/logrus"
-	"github.com/tskaard/tibber-golang/model"
 )
 
+// HomesResponse response from homes
+type HomesResponse struct {
+	Viewer HomeViewer `json:"viewer"`
+}
+
+// HomeViewer list of homes
+type HomeViewer struct {
+	Homes []Home `json:"homes"`
+}
+
+// Home structure
+type Home struct {
+	ID                string            `json:"id"`
+	AppNickname       string            `json:"appNickname"`
+	MeteringPointData MeteringPointData `json:"meteringPointData"`
+	Features          Features          `json:"features"`
+}
+
+// MeteringPointData - meter number
+type MeteringPointData struct {
+	ConsumptionEan string `json:"consumptionEan"`
+}
+
+// Features - tibber pulse connected
+type Features struct {
+	RealTimeConsumptionEnabled bool `json:"realTimeConsumptionEnabled"`
+}
+
 // GetHomes get a list of homes with information
-func (t *Client) GetHomes() ([]model.Home, error) {
+func (t *Client) GetHomes() ([]Home, error) {
 	req := graphql.NewRequest(`
 		query {
 			viewer {
@@ -29,7 +56,7 @@ func (t *Client) GetHomes() ([]model.Home, error) {
 	req.Header.Set("Cache-Control", "no-cache")
 	req.Header.Set("Authorization", "Bearer "+t.Token)
 	ctx := context.Background()
-	var result model.HomesResponse
+	var result HomesResponse
 	if err := t.gqlClient.Run(ctx, req, &result); err != nil {
 		log.Error(err)
 		return nil, err

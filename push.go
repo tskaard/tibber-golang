@@ -5,8 +5,25 @@ import (
 
 	"github.com/machinebox/graphql"
 	log "github.com/sirupsen/logrus"
-	"github.com/tskaard/tibber-golang/model"
 )
+
+// PushResponse respons from notification api
+type PushResponse struct {
+	SendPushNotification SendPushNotification `json:"sendPushNotification"`
+}
+
+// SendPushNotification data in push response
+type SendPushNotification struct {
+	Successful              bool `json:"successful"`
+	PushedToNumberOfDevices int  `json:"pushedToNumberOfDevices"`
+}
+
+// PushInput push message
+type PushInput struct {
+	Title        string `json:"title"`
+	Message      string `json:"message"`
+	ScreenToOpen string `json:"screenToOpen"`
+}
 
 // SendPushNotification from tibber app
 func (t *Client) SendPushNotification(title, msg string) (int, error) {
@@ -17,7 +34,7 @@ func (t *Client) SendPushNotification(title, msg string) (int, error) {
 		  		pushedToNumberOfDevices
 			}
 	  }`)
-	input := model.PushInput{
+	input := PushInput{
 		Title:        title,
 		Message:      msg,
 		ScreenToOpen: "CONSUMPTION",
@@ -27,7 +44,7 @@ func (t *Client) SendPushNotification(title, msg string) (int, error) {
 	req.Header.Set("Authorization", "Bearer "+t.Token)
 	ctx := context.Background()
 	//ctx, _ := context.WithTimeout(context.Background(), time.Second*2)
-	var result model.PushResponse
+	var result PushResponse
 	if err := t.gqlClient.Run(ctx, req, &result); err != nil {
 		log.Error(err)
 		return 0, err
