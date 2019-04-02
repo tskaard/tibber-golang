@@ -42,10 +42,5 @@ func TestStreams(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Stream: %v", err)
 	}
-	select {
-	case msg := <-msgCh:
-		t.Logf("Msg: %v", msg)
-	}
-
 	stream.Stop()
 }
