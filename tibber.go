@@ -13,7 +13,6 @@ const graphQlEndpoint = "https://api.tibber.com/v1-beta/gql"
 type Client struct {
 	Token     string
 	gqlClient *graphql.Client
-	streams   map[string]*Stream
 }
 
 // NewClient init tibber client
@@ -25,7 +24,6 @@ func NewClient(token string) *Client {
 	tc := Client{
 		Token:     token,
 		gqlClient: gql,
-		streams:   make(map[string]*Stream),
 	}
 	return &tc
 }

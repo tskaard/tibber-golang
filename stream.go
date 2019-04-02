@@ -69,7 +69,6 @@ func NewStream(id, token string) *Stream {
 func (ts *Stream) StartSubscription(outputChan MsgChan) error {
 	// Connect
 	var err error
-	//err := errors.New("<TibberStream> Not connected")
 	for {
 		err := ts.connect()
 		if err != nil {
@@ -121,9 +120,6 @@ func (ts *Stream) StartSubscription(outputChan MsgChan) error {
 				case "subscription_data":
 					tm.HomeID = ts.ID
 					outputChan <- &tm
-					//tc.InboundMsgCh <- &tm
-					//log.Info("subscription_data")
-					//log.Info(tm.Payload.Data.LiveMeasurement.Power)
 				}
 			}
 			if !ts.isRunning {
@@ -175,7 +171,6 @@ func (ts *Stream) sendInitMsg() {
 func (ts *Stream) sendSubMsg() {
 	homeID := ts.ID
 	//sub := `{"query":"subscription{\n  liveMeasurement(homeId:\"` + homeID + `\"){\n    timestamp\n    power\n    accumulatedConsumption\n    accumulatedCost\n    currency\n    minPower\n    averagePower\n    maxPower\n  }\n}\n","variables":null,"type":"subscription_start","id":0}`
-
 	sub := `{"query":"subscription{\n  liveMeasurement(homeId:\"` + homeID + `\"){\n    timestamp\n    power\n  }\n}\n","variables":null,"type":"subscription_start","id":0}`
 	ts.client.WriteMessage(websocket.TextMessage, []byte(sub))
 }
