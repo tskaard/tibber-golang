@@ -33,15 +33,19 @@ func TestPush(t *testing.T) {
 	}
 }
 
-// func TestStreams(t *testing.T) {
-// 	var msgCh model.MsgChan
-// 	token := string(helperLoadBytes(t, "token.txt"))
-// 	homeID := string(helperLoadBytes(t, "homeId.txt"))
-// 	stream := NewStream(homeID, token)
-// 	err := stream.StartSubscription(msgCh)
-// 	if err != nil {
-// 		t.Fatalf("Stream: %v", err)
-// 	}
-// 	<-msgCh
-// 	stream.Stop()
-// }
+func TestStreams(t *testing.T) {
+	var msgCh MsgChan
+	token := string(helperLoadBytes(t, "token.txt"))
+	homeID := string(helperLoadBytes(t, "homeId.txt"))
+	stream := NewStream(homeID, token)
+	err := stream.StartSubscription(msgCh)
+	if err != nil {
+		t.Fatalf("Stream: %v", err)
+	}
+	select {
+	case msg := <-msgCh:
+		t.Logf("Msg: %v", msg)
+	}
+
+	stream.Stop()
+}

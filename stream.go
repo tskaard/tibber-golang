@@ -1,7 +1,6 @@
 package tibber
 
 import (
-	"errors"
 	"net/http"
 	"net/url"
 	"time"
@@ -69,7 +68,7 @@ func NewStream(id, token string) *Stream {
 // StartSubscription init connection and subscibes to home id
 func (ts *Stream) StartSubscription(outputChan MsgChan) error {
 	// Connect
-	err := errors.New("<TibberStream> Not connected")
+	//err := errors.New("<TibberStream> Not connected")
 	for {
 		err := ts.connect()
 		if err != nil {
