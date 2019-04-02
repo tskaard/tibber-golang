@@ -17,7 +17,7 @@ func helperLoadBytes(t *testing.T, name string) []byte {
 
 func TestGetHomes(t *testing.T) {
 	token := string(helperLoadBytes(t, "token.txt"))
-	tc := NewTibberClient(token)
+	tc := NewClient(token)
 	homes, _ := tc.GetHomes()
 	if homes == nil {
 		t.Fatalf("GetHomes: %v", homes)
@@ -26,7 +26,7 @@ func TestGetHomes(t *testing.T) {
 
 func TestPush(t *testing.T) {
 	token := string(helperLoadBytes(t, "token.txt"))
-	tc := NewTibberClient(token)
+	tc := NewClient(token)
 	_, err := tc.SendPushNotification("Golang Test", "Running golang test")
 	if err != nil {
 		t.Fatalf("Push: %v", err)

@@ -38,7 +38,7 @@ func NewStream(id, token string) *Stream {
 }
 
 // StartSubscription init connection and subscibes to home id
-func (ts *Stream) StartSubscription(outputChan model.MsgChan) error {
+func (ts *Stream) StartSubscription(outputChan MsgChan) error {
 	// Connect
 	err := errors.New("<TibberStream> Not connected")
 	for {
