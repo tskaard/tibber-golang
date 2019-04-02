@@ -14,6 +14,9 @@ import (
 const subscriptionEndpoint = "v1-beta/gql/subscriptions"
 const tibberHost = "api.tibber.com"
 
+// MsgChan for reciving messages
+type MsgChan chan *model.TibberMsg
+
 // Stream for subscribing to Tibber pulse
 type Stream struct {
 	Token       string
