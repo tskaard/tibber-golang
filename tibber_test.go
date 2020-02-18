@@ -24,6 +24,16 @@ func TestGetHomes(t *testing.T) {
 	}
 }
 
+func TestGetHomeById(t *testing.T) {
+	token := string(helperLoadBytes(t, "token.txt"))
+	tc := NewClient(token)
+	homeId := string(helperLoadBytes(t, "homeId.txt"))
+	home, _ := tc.GetHomeById(homeId)
+	if home.ID == "" {
+		t.Fatalf("GetHomeById: %s %v", homeId, home)
+	}
+}
+
 func TestPush(t *testing.T) {
 	token := string(helperLoadBytes(t, "token.txt"))
 	tc := NewClient(token)
