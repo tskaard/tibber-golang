@@ -3,6 +3,7 @@ package tibber
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/machinebox/graphql"
 	log "github.com/sirupsen/logrus"
@@ -28,16 +29,17 @@ type HomeViewer struct {
 
 // Home structure
 type Home struct {
-	ID                   string            `json:"id"`
-	AppNickname          string            `json:"appNickname"`
-	MeteringPointData    MeteringPointData `json:"meteringPointData"`
-	Features             Features          `json:"features"`
-	Address              Address           `json:"address"`
-	Size                 int               `json:"size"`
-	MainFuseSize         int               `json:"mainFuseSize"`
-	NumberOfResidents    int               `json:"numberOfResidents"`
-	PrimaryHeatingSource string            `json:"primaryHeatingSource"`
-	HasVentilationSystem bool              `json:"hasVentilationSystem"`
+	ID                   string              `json:"id"`
+	AppNickname          string              `json:"appNickname"`
+	MeteringPointData    MeteringPointData   `json:"meteringPointData"`
+	Features             Features            `json:"features"`
+	Address              Address             `json:"address"`
+	Size                 int                 `json:"size"`
+	MainFuseSize         int                 `json:"mainFuseSize"`
+	NumberOfResidents    int                 `json:"numberOfResidents"`
+	PrimaryHeatingSource string              `json:"primaryHeatingSource"`
+	HasVentilationSystem bool                `json:"hasVentilationSystem"`
+	CurrentSubscription  CurrentSubscription `json:"currentSubscription"`
 }
 
 type Address struct {
@@ -59,6 +61,22 @@ type MeteringPointData struct {
 // Features - tibber pulse connected
 type Features struct {
 	RealTimeConsumptionEnabled bool `json:"realTimeConsumptionEnabled"`
+}
+
+type CurrentSubscription struct {
+	PriceInfo PriceInfo `json:"priceInfo"`
+}
+
+type PriceInfo struct {
+	CurrentPriceInfo CurrentPriceInfo `json:"current"`
+}
+
+type CurrentPriceInfo struct {
+	Level    string    `json:"level"`
+	Total    float32   `json:"total"`
+	Energy   float32   `json:"energy"`
+	Tax      float32   `json:"tax"`
+	StartsAt time.Time `json:"startsAt"`
 }
 
 // GetHomes get a list of homes with information
@@ -183,3 +201,35 @@ func (t *Client) GetHomeById(homeId string) (Home, error) {
 // 				}
 // 			}
 // 		}`)
+
+func (t *Client) GetCurrentPrice(homeId string) (CurrentPriceInfo, error) {
+	req := graphql.NewRequest(fmt.Sprintf(`
+		query {
+			viewer {
+				home(id:"%s")  {
+					currentSubscription {
+						priceInfo {
+							current {
+								level
+								total
+								energy
+								tax
+								startsAt
+							}
+						}
+					}
+				}
+			}
+		}`, homeId))
+	req.Header.Set("Cache-Control", "no-cache")
+	req.Header.Set("Authorization", "Bearer "+t.Token)
+	ctx := context.Background()
+	var result HomeResponse
+	if err := t.gqlClient.Run(ctx, req, &result); err != nil {
+		log.Error(err)
+		return CurrentPriceInfo{}, err
+	}
+
+	log.Info("success: ", result)
+	return result.Viewer.Home.CurrentSubscription.PriceInfo.CurrentPriceInfo, nil
+}

@@ -54,3 +54,13 @@ func TestStreams(t *testing.T) {
 	}
 	stream.Stop()
 }
+
+func TestGetCurrentPrice(t *testing.T) {
+	token := string(helperLoadBytes(t, "token.txt"))
+	tc := NewClient(token)
+	homeId := string(helperLoadBytes(t, "homeId.txt"))
+	priceInfo, _ := tc.GetCurrentPrice(homeId)
+	if priceInfo.Level == "" {
+		t.Fatalf("GetCurrentPrice: %v", priceInfo)
+	}
+}
