@@ -76,6 +76,7 @@ type CurrentPriceInfo struct {
 	Total    float32   `json:"total"`
 	Energy   float32   `json:"energy"`
 	Tax      float32   `json:"tax"`
+	Currency string    `json:"currency"`
 	StartsAt time.Time `json:"startsAt"`
 }
 
@@ -214,6 +215,7 @@ func (t *Client) GetCurrentPrice(homeId string) (CurrentPriceInfo, error) {
 								total
 								energy
 								tax
+								currency
 								startsAt
 							}
 						}
@@ -230,6 +232,5 @@ func (t *Client) GetCurrentPrice(homeId string) (CurrentPriceInfo, error) {
 		return CurrentPriceInfo{}, err
 	}
 
-	log.Info("success: ", result)
 	return result.Viewer.Home.CurrentSubscription.PriceInfo.CurrentPriceInfo, nil
 }
