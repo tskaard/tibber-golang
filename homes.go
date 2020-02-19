@@ -73,9 +73,9 @@ type PriceInfo struct {
 
 type CurrentPriceInfo struct {
 	Level    string    `json:"level"`
-	Total    float32   `json:"total"`
-	Energy   float32   `json:"energy"`
-	Tax      float32   `json:"tax"`
+	Total    float64   `json:"total"`
+	Energy   float64   `json:"energy"`
+	Tax      float64   `json:"tax"`
 	Currency string    `json:"currency"`
 	StartsAt time.Time `json:"startsAt"`
 }
