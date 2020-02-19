@@ -1,6 +1,7 @@
 package tibber
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
 	"time"
@@ -35,14 +36,26 @@ type Data struct {
 
 // LiveMeasurement in data payload
 type LiveMeasurement struct {
-	Timestamp              string  `json:"timestamp"`
-	Power                  int     `json:"power"`
-	AccumulatedConsumption float64 `json:"accumulatedConsumption"`
-	AccumulatedCost        float64 `json:"accumulatedCost"`
-	Currency               string  `json:"currency"`
-	MinPower               int     `json:"minPower"`
-	AveragePower           float64 `json:"averagePower"`
-	MaxPower               int     `json:"maxPower"`
+	Timestamp              time.Time `json:"timestamp"`
+	Power                  float64   `json:"power"`
+	LastMeterConsumption   float64   `json:"lastMeterConsumption"`
+	LastMeterProduction    float64   `json:"lastMeterProduction"`
+	AccumulatedConsumption float64   `json:"accumulatedConsumption"`
+	AccumulatedCost        float64   `json:"accumulatedCost"`
+	AccumulatedProduction  float64   `json:"accumulatedProduction"`
+	AccumulatedReward      float64   `json:"accumulatedReward"`
+	MinPower               float64   `json:"minPower"`
+	AveragePower           float64   `json:"averagePower"`
+	MaxPower               float64   `json:"maxPower"`
+	PowerProduction        float64   `json:"powerProduction"`
+	MinPowerProduction     float64   `json:"minPowerProduction"`
+	MaxPowerProduction     float64   `json:"maxPowerProduction"`
+	VoltagePhase1          float64   `json:"voltagePhase1"`
+	VoltagePhase2          float64   `json:"voltagePhase2"`
+	VoltagePhase3          float64   `json:"voltagePhase3"`
+	CurrentPhase1          float64   `json:"currentPhase1"`
+	CurrentPhase2          float64   `json:"currentPhase2"`
+	CurrentPhase3          float64   `json:"currentPhase3"`
 }
 
 // Stream for subscribing to Tibber pulse
@@ -170,7 +183,30 @@ func (ts *Stream) sendInitMsg() {
 
 func (ts *Stream) sendSubMsg() {
 	homeID := ts.ID
-	//sub := `{"query":"subscription{\n  liveMeasurement(homeId:\"` + homeID + `\"){\n    timestamp\n    power\n    accumulatedConsumption\n    accumulatedCost\n    currency\n    minPower\n    averagePower\n    maxPower\n  }\n}\n","variables":null,"type":"subscription_start","id":0}`
-	sub := `{"query":"subscription{\n  liveMeasurement(homeId:\"` + homeID + `\"){\n    timestamp\n    power\n  }\n}\n","variables":null,"type":"subscription_start","id":0}`
+	sub := fmt.Sprintf(`
+	subscription {
+		liveMeasurement(homeId:"%s") {
+			timestamp
+			power
+			lastMeterConsumption
+			lastMeterProduction
+			accumulatedConsumption
+			accumulatedCost
+			accumulatedProduction
+			accumulatedReward
+			minPower
+			averagePower
+			maxPower
+			powerProduction
+			minPowerProduction
+			maxPowerProduction
+			voltagePhase1
+			voltagePhase2
+			voltagePhase3
+			currentPhase1
+			currentPhase2
+			currentPhase3
+		}
+	}`, homeID)
 	ts.client.WriteMessage(websocket.TextMessage, []byte(sub))
 }
