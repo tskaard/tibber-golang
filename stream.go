@@ -1,6 +1,7 @@
 package tibber
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -181,9 +182,18 @@ func (ts *Stream) sendInitMsg() {
 	ts.client.WriteMessage(websocket.TextMessage, []byte(init))
 }
 
+func jsonEscape(i string) string {
+	b, err := json.Marshal(i)
+	if err != nil {
+		panic(err)
+	}
+	// Trim the beginning and trailing " character
+	return string(b[1 : len(b)-1])
+}
+
 func (ts *Stream) sendSubMsg() {
 	homeID := ts.ID
-	sub := fmt.Sprintf(`
+	var subscriptionQuery = fmt.Sprintf(`
 	subscription {
 		liveMeasurement(homeId:"%s") {
 			timestamp
@@ -207,6 +217,17 @@ func (ts *Stream) sendSubMsg() {
 			currentPhase2
 			currentPhase3
 		}
-	}`, homeID)
+	}`,
+		homeID)
+
+	sub := fmt.Sprintf(`
+	{
+		"query": "%s",
+		"variables":null,
+		"type":"subscription_start",
+		"id":0
+	}`, jsonEscape(subscriptionQuery))
+
+	log.Debug("Subscribe with query", sub)
 	ts.client.WriteMessage(websocket.TextMessage, []byte(sub))
 }
