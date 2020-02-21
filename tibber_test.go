@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"path/filepath"
 	"testing"
+	"time"
 )
 
 func helperLoadBytes(t *testing.T, name string) []byte {
@@ -48,9 +49,13 @@ func TestStreams(t *testing.T) {
 	token := string(helperLoadBytes(t, "token.txt"))
 	homeID := string(helperLoadBytes(t, "homeId.txt"))
 	stream := NewStream(homeID, token)
-	err := stream.StartSubscription(msgCh)
-	if err != nil {
+	errChan := stream.StartSubscription(msgCh)
+
+	select {
+	case err := <-errChan:
 		t.Fatalf("Stream: %v", err)
+	case <-time.After(time.Second * 7):
+		break
 	}
 	stream.Stop()
 }

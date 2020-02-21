@@ -80,13 +80,14 @@ func NewStream(id, token string) *Stream {
 }
 
 // StartSubscription init connection and subscibes to home id
-func (ts *Stream) StartSubscription(outputChan MsgChan) error {
+func (ts *Stream) StartSubscription(outputChan MsgChan) chan error {
 	// Connect
-	var err error
+	errChan := make(chan error)
 	for {
 		err := ts.connect()
 		if err != nil {
-			log.Error("<TibberStream> Reconnecting Web Sockets...")
+			log.WithError(err).Error("<TibberStream> Could not connect to websocket")
+			errChan <- err
 			time.Sleep(time.Second * 7) // trying to repair the connection
 		} else {
 			ts.initialized = false
@@ -112,13 +113,19 @@ func (ts *Stream) StartSubscription(outputChan MsgChan) error {
 					websocket.CloseGoingAway,
 					websocket.CloseAbnormalClosure,
 					websocket.CloseNormalClosure) {
-					log.Error("<TibberStream> CloseError, Reconnecting after 7 seconds:", err)
+					log.WithError(err).Error("<TibberStream> CloseError, Reconnecting after 7 seconds")
+					errChan <- err
 					time.Sleep(time.Second * 7) // trying to repair the connection
 					ts.initialized = false
-					ts.connect()
+					err = ts.connect()
+					if err != nil {
+						log.WithError(err).Error("<TibberStream> Could not connect to websocket")
+						errChan <- err
+					}
 					continue
 				} else {
-					log.Error("<TibberStream> Other error: ", err)
+					log.WithError(err).Error()
+					errChan <- err
 					continue
 				}
 			} else {
@@ -134,16 +141,25 @@ func (ts *Stream) StartSubscription(outputChan MsgChan) error {
 				case "subscription_data":
 					tm.HomeID = ts.ID
 					outputChan <- &tm
+
+				case "subscription_fail":
+					err := fmt.Errorf("Subscription failed")
+					log.WithError(err).Error()
+					errChan <- err
+
+				default:
+					err := fmt.Errorf("Unexpected message: %s", tm.Type)
+					log.WithError(err).Error()
+					errChan <- err
 				}
 			}
 			if !ts.isRunning {
 				log.Debug("<TibberStream> Stopping")
 				break
 			}
-
 		}
 	}()
-	return err
+	return errChan
 }
 
 func (ts *Stream) connect() error {
