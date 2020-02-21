@@ -59,6 +59,35 @@ type LiveMeasurement struct {
 	CurrentPhase3          float64   `json:"currentPhase3"`
 }
 
+// IsExtended returns whether the report is normal or extended.
+// In an extended report we would have at least one phase information
+func (m *LiveMeasurement) IsExtended() bool {
+	return m.CurrentPhase1 > 0 || m.CurrentPhase2 > 0 || m.CurrentPhase3 > 0
+}
+
+// AsFloatMap returns the LiveMeasurement struct as a float map
+func (m *LiveMeasurement) AsFloatMap() map[string]float64 {
+	return map[string]float64{
+		"p_import":      m.Power,
+		"e_import":      m.LastMeterConsumption,
+		"e_export":      m.LastMeterProduction,
+		"last_e_import": m.AccumulatedConsumption,
+		"last_e_export": m.AccumulatedProduction,
+		"p_import_min":  m.MinPower,
+		"p_import_avg":  m.AveragePower,
+		"p_import_max":  m.MaxPower,
+		"p_export":      m.PowerProduction,
+		"p_export_min":  m.MinPowerProduction,
+		"p_export_max":  m.MaxPowerProduction,
+		"u1":            m.VoltagePhase1,
+		"u2":            m.VoltagePhase2,
+		"u3":            m.VoltagePhase3,
+		"i1":            m.CurrentPhase1,
+		"i2":            m.CurrentPhase2,
+		"i3":            m.CurrentPhase3,
+	}
+}
+
 // Stream for subscribing to Tibber pulse
 type Stream struct {
 	Token       string
