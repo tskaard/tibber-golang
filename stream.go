@@ -81,6 +81,11 @@ func (m *LiveMeasurement) HasPower() bool {
 	return m.Power > 0
 }
 
+// HasProductionOrConsumptionPower return true if measurement contains values
+func (m *LiveMeasurement) HasProductionOrConsumptionPower() bool {
+	return m.Power > 0 || m.PowerProduction > 0
+}
+
 // AsFloatMap returns the LiveMeasurement struct as a float map
 func (m *LiveMeasurement) AsFloatMap() map[string]float64 {
 	return map[string]float64{
