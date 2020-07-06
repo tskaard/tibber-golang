@@ -14,6 +14,12 @@ import (
 const subscriptionEndpoint = "v1-beta/gql/subscriptions"
 const tibberHost = "api.tibber.com"
 
+const (
+	StreamStateConnected    = "CONNECTED"
+	StreamStateConnecting   = "CONNECTING"
+	StreamStateDisconnected = "DISCONNECTED"
+)
+
 // MsgChan for reciving messages
 type MsgChan chan *StreamMsg
 
@@ -23,6 +29,11 @@ type StreamMsg struct {
 	Type    string  `json:"type"`
 	ID      int     `json:"id"`
 	Payload Payload `json:"payload"`
+}
+
+type StreamState struct {
+	State string
+	Err   error
 }
 
 // Payload in StreamMsg
@@ -65,6 +76,11 @@ func (m *LiveMeasurement) IsExtended() bool {
 	return m.CurrentPhase1 > 0 || m.CurrentPhase2 > 0 || m.CurrentPhase3 > 0
 }
 
+// HasPower returns true if the report contains power measurement
+func (m *LiveMeasurement) HasPower() bool {
+	return m.Power > 0
+}
+
 // AsFloatMap returns the LiveMeasurement struct as a float map
 func (m *LiveMeasurement) AsFloatMap() map[string]float64 {
 	return map[string]float64{
@@ -90,111 +106,169 @@ func (m *LiveMeasurement) AsFloatMap() map[string]float64 {
 
 // Stream for subscribing to Tibber pulse
 type Stream struct {
-	Token       string
-	ID          string
-	isRunning   bool
-	initialized bool
-	client      *websocket.Conn
+	Token           string
+	ID              string
+	isRunning       bool
+	initialized     bool
+	client          *websocket.Conn
+	stateReportChan chan StreamState
+	outputChan      MsgChan
+}
+
+func (ts *Stream) StateReportChan() chan StreamState {
+	return ts.stateReportChan
 }
 
 // NewStream with id and token
 func NewStream(id, token string) *Stream {
 	ts := Stream{
-		ID:          id,
-		Token:       token,
-		isRunning:   true,
-		initialized: false,
+		ID:              id,
+		Token:           token,
+		isRunning:       true,
+		initialized:     false,
+		stateReportChan: make(chan StreamState),
 	}
 	return &ts
 }
 
-// StartSubscription init connection and subscibes to home id
-func (ts *Stream) StartSubscription(outputChan MsgChan) chan error {
+// StartSubscription init connection and subscribes to home id
+func (ts *Stream) StartSubscription(outputChan MsgChan) error {
 	// Connect
-	errChan := make(chan error)
+	ts.outputChan = outputChan
 	for {
 		err := ts.connect()
 		if err != nil {
 			log.WithError(err).Error("<TibberStream> Could not connect to websocket")
-			errChan <- err
 			time.Sleep(time.Second * 7) // trying to repair the connection
 		} else {
 			ts.initialized = false
+			log.Info("<TibberStream> Connected")
 			break // connection was made
 		}
 	}
+	ts.startMsgRouter()
+	return nil
+}
+
+func (ts *Stream) reportState(state string, err error) {
+	st := StreamState{
+		State: state,
+		Err:   err,
+	}
+	select {
+	case ts.stateReportChan <- st:
+	default:
+		log.Debug("<TibberStream> No error liste")
+	}
+
+}
+
+func (ts *Stream) startMsgRouter() {
 	go func() {
-		defer func() {
-			if r := recover(); r != nil {
-				log.Error("<TibberStream> Process CRASHED with error: ", r)
-				ts.StartSubscription(outputChan)
-			}
-		}()
-		defer ts.client.Close()
 		for {
-			if !ts.initialized {
-				ts.sendInitMsg()
-			}
-			tm := StreamMsg{}
-			err := ts.client.ReadJSON(&tm)
-			if err != nil {
-				if websocket.IsCloseError(err,
-					websocket.CloseGoingAway,
-					websocket.CloseAbnormalClosure,
-					websocket.CloseNormalClosure) {
-					log.WithError(err).Error("<TibberStream> CloseError, Reconnecting after 7 seconds")
-					errChan <- err
-					time.Sleep(time.Second * 7) // trying to repair the connection
-					ts.initialized = false
+			ts.msgLoop()
+			log.Error("<TibberStream> Restarting msg router")
+		}
+	}()
+}
+
+func (ts *Stream) msgLoop() {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Error("<TibberStream> Process CRASHED with error: ", r)
+			time.Sleep(1 * time.Minute)
+		}
+		if ts.client != nil {
+			ts.client.Close()
+		}
+	}()
+	var unknownErrorCounter int
+	for {
+		if !ts.initialized {
+			ts.sendInitMsg()
+		}
+		tm := StreamMsg{}
+		err := ts.client.ReadJSON(&tm)
+		if err != nil {
+			if ts.isWsCloseError(err) {
+				log.WithError(err).Error("<TibberStream> CloseError, Reconnecting after 10 seconds")
+				ts.reportState(StreamStateDisconnected, err)
+				time.Sleep(time.Second * 10) // trying to repair the connection
+				ts.initialized = false
+				err = ts.connect()
+				if err != nil {
+					log.WithError(err).Error("<TibberStream> Could not connect to websocket")
+					time.Sleep(time.Second * 30)
+				}
+				continue
+			} else {
+				unknownErrorCounter++
+				log.WithError(err).Error("<TibberStream> Unknown error while reading data from WS")
+				ts.reportState(StreamStateDisconnected, err)
+				time.Sleep(time.Second * 20)
+				if unknownErrorCounter > 10 {
+					ts.client.Close()
 					err = ts.connect()
 					if err != nil {
 						log.WithError(err).Error("<TibberStream> Could not connect to websocket")
-						errChan <- err
+						time.Sleep(time.Second * 60)
 					}
-					continue
-				} else {
-					log.WithError(err).Error()
-					errChan <- err
-					continue
 				}
-			} else {
-				switch tm.Type {
-				case "init_success":
-					log.Info("<TibberStream> Init success")
-					ts.initialized = true
-					ts.sendSubMsg()
-
-				case "subscription_success":
-					log.Info("<TibberStream> Subscription success")
-
-				case "subscription_data":
-					tm.HomeID = ts.ID
-					outputChan <- &tm
-
-				case "subscription_fail":
-					err := fmt.Errorf("Subscription failed")
-					log.WithError(err).Error()
-					errChan <- err
-
-				default:
-					err := fmt.Errorf("Unexpected message: %s", tm.Type)
-					log.WithError(err).Error()
-					errChan <- err
-				}
+				continue
 			}
-			if !ts.isRunning {
-				log.Debug("<TibberStream> Stopping")
-				break
+		} else {
+			unknownErrorCounter = 0
+			switch tm.Type {
+			case "init_success":
+				log.Info("<TibberStream> Init success")
+				ts.initialized = true
+				ts.sendSubMsg()
+
+			case "subscription_success":
+				log.Info("<TibberStream> Subscription success")
+
+			case "subscription_data":
+				tm.HomeID = ts.ID
+				ts.outputChan <- &tm
+
+			case "subscription_fail":
+				err := fmt.Errorf("subscription failed")
+				log.WithError(err).Error("<TibberStream>")
+				ts.reportState(StreamStateDisconnected, err)
+
+			default:
+				log.Info("<TibberStream> Unexpected message type :", tm.Type)
 			}
 		}
-	}()
-	return errChan
+		if !ts.isRunning {
+			log.Debug("<TibberStream> Stopping")
+			break
+		}
+	}
+}
+func (ts *Stream) isWsCloseError(err error) bool {
+	return websocket.IsCloseError(err,
+		websocket.CloseGoingAway,
+		websocket.CloseAbnormalClosure,
+		websocket.CloseNormalClosure,
+		websocket.CloseProtocolError,
+		websocket.CloseUnsupportedData,
+		websocket.CloseNoStatusReceived,
+		websocket.CloseInvalidFramePayloadData,
+		websocket.ClosePolicyViolation,
+		websocket.CloseMessageTooBig,
+		websocket.CloseMandatoryExtension,
+		websocket.CloseInternalServerErr,
+		websocket.CloseServiceRestart,
+		websocket.CloseTryAgainLater,
+		websocket.CloseTLSHandshake)
 }
 
 func (ts *Stream) connect() error {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Error("<TibberStream> ID: ", ts.ID, " - Process CRASHED with error : ", r)
+			time.Sleep(time.Minute * 1)
 		}
 	}()
 	u := url.URL{Scheme: "wss", Host: tibberHost, Path: subscriptionEndpoint}
@@ -211,6 +285,7 @@ func (ts *Stream) connect() error {
 		} else {
 			log.Info("<TibberStream> WS Client is connected - ID: ", ts.ID, " error: ", err)
 			ts.isRunning = true
+			ts.reportState(StreamStateConnected, err)
 			return nil
 		}
 	}

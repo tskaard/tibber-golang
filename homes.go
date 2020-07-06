@@ -27,6 +27,11 @@ type HomeViewer struct {
 	Home Home `json:"home"`
 }
 
+type PreviousMeterData struct {
+	Power           float64 `json:"power"`
+	PowerProduction float64 `json:"powerProduction"`
+}
+
 // Home structure
 type Home struct {
 	ID                   string              `json:"id"`
@@ -40,6 +45,7 @@ type Home struct {
 	PrimaryHeatingSource string              `json:"primaryHeatingSource"`
 	HasVentilationSystem bool                `json:"hasVentilationSystem"`
 	CurrentSubscription  CurrentSubscription `json:"currentSubscription"`
+	PreviousMeterData    PreviousMeterData   `json:"previousMeterData"`
 }
 
 type Address struct {

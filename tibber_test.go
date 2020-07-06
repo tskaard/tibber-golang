@@ -28,10 +28,10 @@ func TestGetHomes(t *testing.T) {
 func TestGetHomeById(t *testing.T) {
 	token := string(helperLoadBytes(t, "token.txt"))
 	tc := NewClient(token)
-	homeId := string(helperLoadBytes(t, "homeId.txt"))
-	home, _ := tc.GetHomeById(homeId)
+	homeID := string(helperLoadBytes(t, "homeId.txt"))
+	home, _ := tc.GetHomeById(homeID)
 	if home.ID == "" {
-		t.Fatalf("GetHomeById: %s %v", homeId, home)
+		t.Fatalf("GetHomeById: %s %v", homeID, home)
 	}
 }
 
@@ -49,11 +49,13 @@ func TestStreams(t *testing.T) {
 	token := string(helperLoadBytes(t, "token.txt"))
 	homeID := string(helperLoadBytes(t, "homeId.txt"))
 	stream := NewStream(homeID, token)
-	errChan := stream.StartSubscription(msgCh)
-
+	err := stream.StartSubscription(msgCh)
+	if err != nil {
+		t.Fatalf("Push: %v", err)
+	}
 	select {
-	case err := <-errChan:
-		t.Fatalf("Stream: %v", err)
+	case msg := <-msgCh:
+		t.Log(msg)
 	case <-time.After(time.Second * 7):
 		break
 	}
@@ -63,8 +65,8 @@ func TestStreams(t *testing.T) {
 func TestGetCurrentPrice(t *testing.T) {
 	token := string(helperLoadBytes(t, "token.txt"))
 	tc := NewClient(token)
-	homeId := string(helperLoadBytes(t, "homeId.txt"))
-	priceInfo, _ := tc.GetCurrentPrice(homeId)
+	homeID := string(helperLoadBytes(t, "homeId.txt"))
+	priceInfo, _ := tc.GetCurrentPrice(homeID)
 	if priceInfo.Level == "" {
 		t.Fatalf("GetCurrentPrice: %v", priceInfo)
 	}
