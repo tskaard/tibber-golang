@@ -48,26 +48,35 @@ type Data struct {
 
 // LiveMeasurement in data payload
 type LiveMeasurement struct {
-	Timestamp              time.Time `json:"timestamp"`
-	Power                  float64   `json:"power"`
-	LastMeterConsumption   float64   `json:"lastMeterConsumption"`
-	LastMeterProduction    float64   `json:"lastMeterProduction"`
-	AccumulatedConsumption float64   `json:"accumulatedConsumption"`
-	AccumulatedCost        float64   `json:"accumulatedCost"`
-	AccumulatedProduction  float64   `json:"accumulatedProduction"`
-	AccumulatedReward      float64   `json:"accumulatedReward"`
-	MinPower               float64   `json:"minPower"`
-	AveragePower           float64   `json:"averagePower"`
-	MaxPower               float64   `json:"maxPower"`
-	PowerProduction        float64   `json:"powerProduction"`
-	MinPowerProduction     float64   `json:"minPowerProduction"`
-	MaxPowerProduction     float64   `json:"maxPowerProduction"`
-	VoltagePhase1          float64   `json:"voltagePhase1"`
-	VoltagePhase2          float64   `json:"voltagePhase2"`
-	VoltagePhase3          float64   `json:"voltagePhase3"`
-	CurrentPhase1          float64   `json:"currentPhase1"`
-	CurrentPhase2          float64   `json:"currentPhase2"`
-	CurrentPhase3          float64   `json:"currentPhase3"`
+	Timestamp                      time.Time `json:"timestamp"`
+	Power                          float64   `json:"power"`
+	LastMeterConsumption           float64   `json:"lastMeterConsumption"`
+	LastMeterProduction            float64   `json:"lastMeterProduction"`
+	AccumulatedConsumption         float64   `json:"accumulatedConsumption"`
+	AccumulatedConsumptionLastHour float64   `json:"accumulatedConsumptionLastHour"`
+	AccumulatedProductionLastHour  float64   `json:"accumulatedProductionLastHour"`
+	AccumulatedCost                float64   `json:"accumulatedCost"`
+	AccumulatedProduction          float64   `json:"accumulatedProduction"`
+	AccumulatedReward              float64   `json:"accumulatedReward"`
+	MinPower                       float64   `json:"minPower"`
+	AveragePower                   float64   `json:"averagePower"`
+	MaxPower                       float64   `json:"maxPower"`
+	PowerProduction                float64   `json:"powerProduction"`
+	PowerReactive                  float64   `json:"powerReactive"`
+	PowerProductionReactive        float64   `json:"powerProductionReactive"`
+	MinPowerProduction             float64   `json:"minPowerProduction"`
+	MaxPowerProduction             float64   `json:"maxPowerProduction"`
+	PowerFactor                    float64   `json:"powerFactor"`
+	VoltagePhase1                  float64   `json:"voltagePhase1"`
+	VoltagePhase2                  float64   `json:"voltagePhase2"`
+	VoltagePhase3                  float64   `json:"voltagePhase3"`
+	CurrentL1                      float64   `json:"currentL1"`
+	CurrentL2                      float64   `json:"currentL2"`
+	CurrentL3                      float64   `json:"currentL3"`
+	CurrentPhase1                  float64   `json:"currentPhase1"`
+	CurrentPhase2                  float64   `json:"currentPhase2"`
+	CurrentPhase3                  float64   `json:"currentPhase3"`
+	SignalStrength                 int64     `json:"signalStrength"`
 }
 
 // IsExtended returns whether the report is normal or extended.
@@ -89,23 +98,28 @@ func (m *LiveMeasurement) HasProductionOrConsumptionPower() bool {
 // AsFloatMap returns the LiveMeasurement struct as a float map
 func (m *LiveMeasurement) AsFloatMap() map[string]float64 {
 	return map[string]float64{
-		"p_import":      m.Power,
-		"e_import":      m.LastMeterConsumption,
-		"e_export":      m.LastMeterProduction,
-		"last_e_import": m.AccumulatedConsumption,
-		"last_e_export": m.AccumulatedProduction,
-		"p_import_min":  m.MinPower,
-		"p_import_avg":  m.AveragePower,
-		"p_import_max":  m.MaxPower,
-		"p_export":      m.PowerProduction,
-		"p_export_min":  m.MinPowerProduction,
-		"p_export_max":  m.MaxPowerProduction,
-		"u1":            m.VoltagePhase1,
-		"u2":            m.VoltagePhase2,
-		"u3":            m.VoltagePhase3,
-		"i1":            m.CurrentPhase1,
-		"i2":            m.CurrentPhase2,
-		"i3":            m.CurrentPhase3,
+		"p_import":           m.Power,
+		"p_import_factor":    m.PowerFactor,
+		"e_import":           m.LastMeterConsumption,
+		"e_export":           m.LastMeterProduction,
+		"last_e_import":      m.AccumulatedConsumption,
+		"last_e_export":      m.AccumulatedProduction,
+		"last_hour_e_import": m.AccumulatedConsumptionLastHour,
+		"last_hour_e_export": m.AccumulatedProductionLastHour,
+		"p_import_min":       m.MinPower,
+		"p_import_avg":       m.AveragePower,
+		"p_import_max":       m.MaxPower,
+		"p_reactive":         m.PowerReactive,
+		"p_export":           m.PowerProduction,
+		"p_export_min":       m.MinPowerProduction,
+		"p_export_max":       m.MaxPowerProduction,
+		"p_export_reactive":  m.PowerProductionReactive,
+		"u1":                 m.VoltagePhase1,
+		"u2":                 m.VoltagePhase2,
+		"u3":                 m.VoltagePhase3,
+		"i1":                 m.CurrentL1,
+		"i2":                 m.CurrentL2,
+		"i3":                 m.CurrentL3,
 	}
 }
 
@@ -326,6 +340,8 @@ func (ts *Stream) sendSubMsg() {
 			lastMeterConsumption
 			lastMeterProduction
 			accumulatedConsumption
+			accumulatedConsumptionLastHour
+			accumulatedProductionLastHour
 			accumulatedCost
 			accumulatedProduction
 			accumulatedReward
@@ -333,11 +349,17 @@ func (ts *Stream) sendSubMsg() {
 			averagePower
 			maxPower
 			powerProduction
+			powerReactive
+			powerProductionReactive	
 			minPowerProduction
 			maxPowerProduction
+			powerFactor
 			voltagePhase1
 			voltagePhase2
 			voltagePhase3
+			currentL1
+			currentL2
+			currentL3
 			currentPhase1
 			currentPhase2
 			currentPhase3
