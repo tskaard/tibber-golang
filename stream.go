@@ -20,7 +20,7 @@ const (
 	StreamStateDisconnected = "DISCONNECTED"
 )
 
-// MsgChan for reciving messages
+// MsgChan for receiving messages
 type MsgChan chan *StreamMsg
 
 // StreamMsg for streams
